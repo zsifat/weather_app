@@ -9,18 +9,30 @@ class WeatherService {
     try {
       String url =
           '$baseUrl/forecast.json?key=$apiKey&q=$city&days=7&aqi=no&alerts=no';
-      print('Fetching URL: $url'); // Debug print
-      final response = await http.get(Uri.parse(url));
-      print('Response status: ${response.statusCode}'); // Debug print
+      print('Fetching URL: $url');
+
+      final response = await http.get(Uri.parse(url)).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Request timed out');
+        },
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
-        print('Error response: ${response.body}'); // Debug print
+        print('Error response: ${response.body}');
         throw Exception('Failed to load weather data: ${response.statusCode}');
       }
     } catch (e) {
-      print('Network error: $e'); // Debug print
-      rethrow;
+      print('Network error details: $e');
+      if (e.toString().contains('SocketException')) {
+        throw Exception('Network error: Please check your internet connection');
+      }
+      throw Exception('Failed to fetch weather data: $e');
     }
   }
 

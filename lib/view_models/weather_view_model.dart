@@ -13,13 +13,35 @@ class WeatherViewModel extends StateNotifier<WeatherState> {
               PlatformDispatcher.instance.platformBrightness == Brightness.dark,
           currentCity: 'sylhet',
           suggestions: [],
+          isLoading: true,
         )) {
     PlatformDispatcher.instance.onPlatformBrightnessChanged = () {
       final isDark =
           PlatformDispatcher.instance.platformBrightness == Brightness.dark;
       setDarkMode(isDark);
     };
-    fetchWeather('sylhet');
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    try {
+      final response = await _weatherService.fetchWeather(state.currentCity);
+      final weatherData = WeatherModel.fromJson(response);
+      state = state.copyWith(
+        weather: weatherData,
+        isLoading: false,
+        error: null,
+      );
+    } catch (e) {
+      String errorMessage = 'Please check your internet connection';
+      if (e.toString().contains('SocketException')) {
+        errorMessage = 'No internet connection. Please check your network.';
+      }
+      state = state.copyWith(
+        isLoading: false,
+        error: errorMessage,
+      );
+    }
   }
 
   void setDarkMode(bool isDarkMode) {
@@ -33,7 +55,7 @@ class WeatherViewModel extends StateNotifier<WeatherState> {
   }
 
   Future<void> fetchWeather(String city) async {
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, error: null);
     try {
       final response = await _weatherService.fetchWeather(city);
       final weatherData = WeatherModel.fromJson(response);
@@ -42,11 +64,24 @@ class WeatherViewModel extends StateNotifier<WeatherState> {
         currentCity: city,
         isLoading: false,
         suggestions: [],
+        error: null,
       );
-      clearSuggestions();
-    } catch (e, stack) {
-      print('Error fetching weather: $e\n$stack');
-      state = state.copyWith(isLoading: false);
+    } catch (e) {
+      print('Error in fetchWeather: $e');
+      String errorMessage;
+      if (e.toString().contains('SocketException')) {
+        errorMessage = 'No internet connection. Please check your network.';
+      } else if (e.toString().contains('timed out')) {
+        errorMessage = 'Request timed out. Please try again.';
+      } else if (e.toString().contains('Failed to load weather data')) {
+        errorMessage = 'Unable to fetch weather data. Please try again later.';
+      } else {
+        errorMessage = 'An error occurred. Please try again.';
+      }
+      state = state.copyWith(
+        isLoading: false,
+        error: errorMessage,
+      );
     }
   }
 
