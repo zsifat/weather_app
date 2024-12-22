@@ -156,7 +156,9 @@ class WeatherView extends StatelessWidget {
                   ),
                 ),
                 Divider(
-                  color: Colors.white.withOpacity(0.2),
+                  color: state.isDarkMode
+                      ? Colors.white.withOpacity(0.2)
+                      : Colors.black.withOpacity(0.2),
                   thickness: 1.5,
                   indent: size.width * 0.20,
                   endIndent: size.width * 0.20,
