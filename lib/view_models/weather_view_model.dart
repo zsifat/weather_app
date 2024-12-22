@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/weather_model.dart';
 import '../services/weather_service.dart';
 import '../view_models/states/weather_state.dart';
+import '../services/storage_service.dart';
 
 class WeatherViewModel extends StateNotifier<WeatherState> {
   final WeatherService _weatherService;
+  final StorageService _storageService = StorageService();
 
   WeatherViewModel(this._weatherService)
       : super(WeatherState(
@@ -25,21 +27,21 @@ class WeatherViewModel extends StateNotifier<WeatherState> {
 
   Future<void> _initializeData() async {
     try {
-      final response = await _weatherService.fetchWeather(state.currentCity);
+      final lastCity = await _storageService.getLastCity();
+      final cityToFetch = lastCity ?? state.currentCity;
+
+      final response = await _weatherService.fetchWeather(cityToFetch);
       final weatherData = WeatherModel.fromJson(response);
       state = state.copyWith(
         weather: weatherData,
+        currentCity: cityToFetch,
         isLoading: false,
         error: null,
       );
     } catch (e) {
-      String errorMessage = 'Please check your internet connection';
-      if (e.toString().contains('SocketException')) {
-        errorMessage = 'No internet connection. Please check your network.';
-      }
       state = state.copyWith(
         isLoading: false,
-        error: errorMessage,
+        error: 'Failed to load weather data',
       );
     }
   }
@@ -59,6 +61,9 @@ class WeatherViewModel extends StateNotifier<WeatherState> {
     try {
       final response = await _weatherService.fetchWeather(city);
       final weatherData = WeatherModel.fromJson(response);
+
+      await _storageService.saveLastCity(city);
+
       state = state.copyWith(
         weather: weatherData,
         currentCity: city,
