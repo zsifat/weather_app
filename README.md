@@ -1,4 +1,4 @@
-# Weather App ⛅
+# Climatic ⛅
 
 A modern weather application built with Flutter using MVVM architecture and Riverpod for state management. Get real-time weather updates, forecasts, and search for cities with a clean, responsive UI.
 
